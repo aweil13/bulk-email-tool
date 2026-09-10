@@ -61,15 +61,28 @@ completed.
   - Host: `<token>._domainkey.starktennis.com`
   - Value: `<token>.dkim.amazonses.com`
 
-- [ ] 7. Add those 3 CNAME records in Squarespace:
-  Settings → Domains → `starktennis.com` → DNS Settings → Add Record (Type: CNAME) for each token.
+- [x] 7. Added the 3 DKIM CNAME records in Squarespace. All three confirmed
+  resolving publicly:
+  ```bash
+  dig +short CNAME <token>._domainkey.starktennis.com @1.1.1.1
+  # each returns <token>.dkim.amazonses.com
+  ```
 
-- [ ] 8. Confirm verification (re-run until `VerificationStatus: SUCCESS`, can take minutes to hours):
+- [~] 8. Verification IN PROGRESS. DNS is live/correct, SES still polling
+  (`DkimStatus: PENDING` as of last check). Re-run until SUCCESS:
   ```bash
   aws sesv2 get-email-identity --email-identity starktennis.com --region us-east-1
   ```
 
-- [ ] 9. Request SES production access (SES Console → Account dashboard → Request production access). Otherwise only verified addresses can receive mail. Usually approved within a day.
+- [~] 9. Production access REQUESTED (submitted via `aws sesv2 put-account-details`,
+  MailType MARKETING). AWS Support **case ID: `178906272700125`**.
+  - Status auto-`DENIED` (the standard automated pause) → AWS replied asking
+    for more detail on sending frequency, list maintenance, and
+    bounce/complaint/unsubscribe handling.
+  - Next action: reply IN the existing case (not a new one) with the use-case
+    details, once DKIM shows SUCCESS (AWS wants a verified identity first).
+  - View/reply: AWS Support Center → Case history (may be filtered under
+    Resolved): https://support.console.aws.amazon.com/support/home#/case/history
 
 - [ ] 10. Import the subscriber list:
   ```bash
@@ -77,43 +90,53 @@ completed.
   ```
   (Use `.xlsx`/`.xls` instead of `.csv` if that's the format on hand — the script auto-detects.)
 
-- [ ] 11. Push the repo to GitHub (if not already):
-  ```bash
-  git init
-  git add .
-  git commit -m "Initial commit"
-  git branch -M main
-  git remote add origin https://github.com/<your-username>/bulk-email-tool.git
-  git push -u origin main
-  ```
+- [x] 11. Repo pushed to GitHub (`github.com/aweil13/bulk-email-tool`, branch `main`).
 
-- [ ] 12. Set up Cloudflare Pages:
-  1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** → select the repo
-  2. Build settings:
-     - Framework preset: `None`
-     - Root directory: *(blank)*
-     - Build command: `npm run build:frontend`
-     - Build output directory: `frontend/dist`
-  3. Environment variables:
-     - `VITE_API_URL` = the `ApiUrl` output from step 5
-     - `VITE_ADMIN_KEY` = the same secret from step 3
-     - `NODE_VERSION` = `20`
-  4. Deploy — note the resulting `*.pages.dev` URL
+- [x] 12. Cloudflare Pages set up. Use the **legacy Pages workflow** — on
+  "Create an app" the default GitHub button routes into the Workers importer;
+  click **"Continue to Pages"** at the bottom to get the classic form with a
+  Build output directory field.
+  - Build command: `npm run build:frontend`
+  - Build output directory: `frontend/dist`
+  - Env vars: `VITE_API_URL` = ApiUrl, `VITE_ADMIN_KEY` = admin secret, `NODE_VERSION` = `20`
+  - Production URL: `https://bulk-email-tool.pages.dev` (the `<hash>.bulk-email-tool.pages.dev`
+    URLs are per-deployment previews — use the bare project domain for CORS/Access).
+  - Note: the first build failed on `AVAILABLE_LISTS` not being exported —
+    fixed by aliasing the shared package to its TS source in
+    `frontend/vite.config.ts` (rollup can't analyze the CJS `__exportStar`).
 
-- [ ] 13. Redeploy CDK with the real Cloudflare Pages URL:
+- [x] 13. CDK redeployed with the real Pages URL (run from `infra/`, not via
+  `npm run deploy` — see step 5 note):
   ```bash
-  npm run deploy -- \
+  cd infra && CDK_DEFAULT_REGION=us-east-1 CDK_DEFAULT_ACCOUNT=767866852344 \
+    npx cdk deploy --require-approval never \
     -c fromEmail=info@starktennis.com \
     -c sendingDomain=starktennis.com \
-    -c allowedOrigin=https://<your-actual-project>.pages.dev \
-    -c unsubscribeBaseUrl=https://<your-actual-project>.pages.dev/unsubscribe.html \
-    -c adminApiSecret=<same secret as step 5> \
+    -c allowedOrigin=https://bulk-email-tool.pages.dev \
+    -c unsubscribeBaseUrl=https://bulk-email-tool.pages.dev/unsubscribe.html \
+    -c adminApiSecret=<secret> \
     -c replyToEmail=james@starktennis.com
   ```
 
-- [ ] 14. Set up Cloudflare Access (in the **Zero Trust** section, separate from Pages):
-  1. **Access → Applications → Add an application → Self-hosted.** Domain: the Pages URL, path `/*`. Policy: Allow, emails = you + James.
-  2. **Add a second application** for the same domain, path `/unsubscribe.html`, with a **Bypass** policy — lets real unsubscribe clicks skip login.
+- [x] 14. Cloudflare Access set up (Zero Trust team `rough-dream-cc16`, Free plan).
+  Menu is now **Access controls → Applications**. Two self-hosted apps:
+  1. Destination `bulk-email-tool.pages.dev` (no path) — policy **Allow**,
+     Emails = allow-listed addresses. Login via built-in One-time PIN.
+  2. Destination `bulk-email-tool.pages.dev/unsubscribe.html` — policy
+     **Bypass** / Everyone.
+  - **Gotcha:** Cloudflare Pages 308-redirects `/unsubscribe.html` →
+    `/unsubscribe` (strips `.html`), and that clean URL was still gated by
+    app #1. Fix: add a **second destination** `bulk-email-tool.pages.dev/unsubscribe`
+    (no extension) to the Bypass app so both the `.html` link and its redirect
+    target skip login. The 308 preserves the `?email&token` query string, so
+    the emailed `/unsubscribe.html?...` link works end to end.
+  - Use custom input for the hostname (the Domain dropdown only lists zones,
+    not `pages.dev`). Verify at the edge, not the browser (cached redirects
+    and Access session cookies give false results):
+    ```bash
+    curl -sI https://bulk-email-tool.pages.dev/unsubscribe   # expect 200
+    curl -sI https://bulk-email-tool.pages.dev/              # expect 302 -> cloudflareaccess.com
+    ```
 
 - [ ] 15. Test end to end:
   - Load the Pages URL → should prompt Cloudflare Access login
