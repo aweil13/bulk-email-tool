@@ -1,0 +1,31 @@
+{
+  "name": "bulk-email-tool",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Serverless bulk email tool for sending to a self-managed subscriber list, with named groups and unsubscribe support. Built on AWS SES + Lambda + DynamoDB, deployed with CDK, admin frontend on Cloudflare Pages behind Access.",
+  "workspaces": [
+    "shared",
+    "lambdas",
+    "infra",
+    "frontend"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w shared",
+    "build:lambdas": "npm run build -w lambdas",
+    "deploy": "npm run build:shared && npm run build:lambdas && npm run cdk:deploy",
+    "cdk:deploy": "npm run deploy -w infra",
+    "cdk:diff": "npm run diff -w infra",
+    "dev:frontend": "npm run dev -w frontend",
+    "build:frontend": "npm run build:shared && npm run build -w frontend",
+    "import-subscribers": "npm run build:shared && ts-node --transpile-only scripts/import-subscribers.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "ts-node": "^10.9.2",
+    "csv-parse": "^5.5.6",
+    "xlsx": "^0.18.5",
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@types/node": "^20.14.0"
+  }
+}

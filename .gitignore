@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+cdk.out/
+*.js
+!**/vite.config.js
+.env
+.env.local
+.DS_Store
+*.log
+
+# Real subscriber data — never commit this
+*.csv
+*.xlsx
+*.xls
+response.json

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Compose Campaign</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="card admin-card">
+      <h1>Compose Campaign</h1>
+      <p class="hint">
+        This page should be restricted by Cloudflare Access — if you're
+        seeing this without logging in, double check the Access policy
+        covers the site root.
+      </p>
+      <form id="campaign-form">
+        <label>
+          Send to
+          <select id="list-select"></select>
+        </label>
+
+        <label>
+          Subject
+          <input type="text" id="subject" name="subject" required />
+        </label>
+
+        <label>
+          Message (HTML allowed)
+          <textarea id="html" name="html" rows="10" required placeholder="&lt;p&gt;Hi! ... &lt;a href=&quot;{{unsubscribeUrl}}&quot;&gt;Unsubscribe&lt;/a&gt;&lt;/p&gt;"></textarea>
+        </label>
+        <p class="hint">Use the literal text <code>{{unsubscribeUrl}}</code> where the per-recipient unsubscribe link should go.</p>
+
+        <button type="submit">Send Campaign</button>
+      </form>
+      <p id="status" class="status" role="status"></p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
