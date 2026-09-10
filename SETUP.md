@@ -25,24 +25,35 @@ completed.
   openssl rand -hex 32
   ```
 
-- [ ] 4. Bootstrap CDK (one-time per AWS account/region):
+- [x] 4. Bootstrap CDK (done in us-east-1, account 767866852344).
+  Note: `npm run deploy -- -c ...` mangles the `-c` flags (npm intercepts
+  `-c` as its own `--call`). Run cdk directly from `infra/` instead:
   ```bash
-  cd infra && npx cdk bootstrap && cd ..
+  cd infra && CDK_DEFAULT_REGION=us-east-1 CDK_DEFAULT_ACCOUNT=767866852344 \
+    npx cdk bootstrap aws://767866852344/us-east-1 \
+    -c adminApiSecret=<secret>   # secret needed because the app synths during bootstrap
   ```
 
-- [ ] 5. First CDK deploy, with placeholder frontend URLs (real ones come in step 9):
+- [x] 5. First CDK deploy done (placeholder frontend URLs). Run from `infra/`:
   ```bash
-  npm run deploy -- \
+  cd infra && CDK_DEFAULT_REGION=us-east-1 CDK_DEFAULT_ACCOUNT=767866852344 \
+    npx cdk deploy --require-approval never \
     -c fromEmail=info@starktennis.com \
     -c sendingDomain=starktennis.com \
     -c allowedOrigin=https://placeholder.pages.dev \
     -c unsubscribeBaseUrl=https://placeholder.pages.dev/unsubscribe.html \
-    -c adminApiSecret=<paste secret from step 3> \
+    -c adminApiSecret=<secret from step 3> \
     -c replyToEmail=james@starktennis.com
   ```
-  Save the `ApiUrl` and `SubscribersTableName` outputs — needed in later steps.
+  Stack outputs:
+  - `ApiUrl` = `https://n3j4rlgc72.execute-api.us-east-1.amazonaws.com`
+  - `SendCampaignFunctionName` = `BulkEmailToolStack-SendCampaignFunction8F23D2F3-uDkToEeD9UGF`
+  - `SubscribersTableName` = `BulkEmailToolStack-SubscribersTable0095C04E-18KPHYPLIELJ3`
 
-- [ ] 6. Get the DKIM CNAME records for `starktennis.com`:
+  Note: `replyToEmail` support had to be added to the code (stack props →
+  send Lambda env → SES `ReplyToAddresses`); it wasn't wired before.
+
+- [x] 6. DKIM CNAME records fetched (status PENDING until added + verified):
   ```bash
   aws sesv2 get-email-identity --email-identity starktennis.com --region us-east-1
   ```
