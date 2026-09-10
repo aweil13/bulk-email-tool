@@ -9,6 +9,7 @@ const ses = new SESv2Client({});
 const TABLE_NAME = process.env.TABLE_NAME as string;
 const FROM_EMAIL = process.env.FROM_EMAIL as string;
 const UNSUBSCRIBE_BASE_URL = process.env.UNSUBSCRIBE_BASE_URL as string; // e.g. https://your-project.pages.dev/unsubscribe.html
+const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL; // optional — replies routed here instead of FROM_EMAIL
 
 interface SendJobInput extends SendCampaignRequestBody {
   /** Delay between sends, in ms. Keep this above your SES account's per-second send rate limit. */
@@ -81,6 +82,7 @@ export const handler = async (event: SendJobInput) => {
         new SendEmailCommand({
           FromEmailAddress: FROM_EMAIL,
           Destination: { ToAddresses: [subscriber.email] },
+          ...(REPLY_TO_EMAIL ? { ReplyToAddresses: [REPLY_TO_EMAIL] } : {}),
           Content: {
             Simple: {
               Subject: { Data: event.subject },

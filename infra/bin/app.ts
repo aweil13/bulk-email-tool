@@ -19,6 +19,8 @@ if (!adminApiSecret) {
     "Missing -c adminApiSecret=<value>. Generate one with: openssl rand -hex 32"
   );
 }
+// Optional — replies to campaigns go here instead of the From address.
+const replyToEmail = app.node.tryGetContext("replyToEmail") || undefined;
 
 new EmailStack(app, "BulkEmailToolStack", {
   fromEmail,
@@ -26,6 +28,7 @@ new EmailStack(app, "BulkEmailToolStack", {
   allowedOrigin,
   unsubscribeBaseUrl,
   adminApiSecret,
+  replyToEmail,
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,

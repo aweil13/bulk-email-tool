@@ -22,6 +22,12 @@ export interface EmailStackProps extends cdk.StackProps {
    * trigger a campaign send. Generate with `openssl rand -hex 32`.
    */
   adminApiSecret: string;
+  /**
+   * Optional Reply-To address applied to every campaign email, so replies
+   * reach a monitored human mailbox even when From is a sending/no-reply
+   * address. Omit to send with no Reply-To header.
+   */
+  replyToEmail?: string;
 }
 
 export class EmailStack extends cdk.Stack {
@@ -75,6 +81,7 @@ export class EmailStack extends cdk.Stack {
         ...lambdaEnv,
         FROM_EMAIL: props.fromEmail,
         UNSUBSCRIBE_BASE_URL: props.unsubscribeBaseUrl,
+        ...(props.replyToEmail ? { REPLY_TO_EMAIL: props.replyToEmail } : {}),
       },
     });
     table.grantReadData(sendFn);
