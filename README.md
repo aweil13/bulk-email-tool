@@ -10,6 +10,14 @@ project for job applications.
 Excel file you already have, via an import script — they never visit any
 part of this tool except the unsubscribe link in an email they received.
 
+## The compose UI
+
+The admin-only compose page (a Vite + vanilla-TS static site on Cloudflare
+Pages, gated behind Cloudflare Access) — pick a list, write an HTML message
+with a `{{unsubscribeUrl}}` placeholder, and send:
+
+![Compose Campaign page](docs/compose-ui.png)
+
 ## Architecture
 
 ```
