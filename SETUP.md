@@ -68,21 +68,15 @@ completed.
   # each returns <token>.dkim.amazonses.com
   ```
 
-- [~] 8. Verification IN PROGRESS. DNS is live/correct, SES still polling
-  (`DkimStatus: PENDING` as of last check). Re-run until SUCCESS:
-  ```bash
-  aws sesv2 get-email-identity --email-identity starktennis.com --region us-east-1
-  ```
+- [x] 8. Domain VERIFIED. `DkimStatus: SUCCESS`, `VerifiedForSendingStatus: true`
+  (took ~70 min after DNS went live — pure SES polling latency).
 
-- [~] 9. Production access REQUESTED (submitted via `aws sesv2 put-account-details`,
-  MailType MARKETING). AWS Support **case ID: `178906272700125`**.
-  - Status auto-`DENIED` (the standard automated pause) → AWS replied asking
-    for more detail on sending frequency, list maintenance, and
-    bounce/complaint/unsubscribe handling.
-  - Next action: reply IN the existing case (not a new one) with the use-case
-    details, once DKIM shows SUCCESS (AWS wants a verified identity first).
-  - View/reply: AWS Support Center → Case history (may be filtered under
-    Resolved): https://support.console.aws.amazon.com/support/home#/case/history
+- [x] 9. Production access GRANTED (case `178906272700125`). Out of the
+  sandbox: quota **50,000/day**, max send rate **14/sec**, EnforcementStatus
+  HEALTHY. Can now send to any recipient, not just verified addresses.
+  - Path taken: requested via `aws sesv2 put-account-details` → auto-paused →
+    replied in-case with use-case detail (frequency, opt-in client list,
+    bounce/complaint/unsubscribe handling) once DKIM verified → approved.
 
 - [ ] 10. Import the subscriber list:
   ```bash
@@ -138,11 +132,15 @@ completed.
     curl -sI https://bulk-email-tool.pages.dev/              # expect 302 -> cloudflareaccess.com
     ```
 
-- [ ] 15. Test end to end:
-  - Load the Pages URL → should prompt Cloudflare Access login
-  - Log in → compose page loads
-  - Send a test campaign to a small group → check inbox
-  - Click unsubscribe in the test email → confirm no login prompt, confirm the DynamoDB row flips `subscribed: false`
+- [~] 15. End-to-end SEND verified. Seeded two temp subscribers in DynamoDB,
+  invoked the send Lambda directly (`aws lambda invoke`), result
+  `{sent:2, failed:0}`. Both emails delivered successfully (inbox, DKIM-signed
+  from info@starktennis.com). Temp rows deleted afterward; table back to empty.
+  - Unsubscribe *page* reachability already confirmed via curl (step 14). The
+    full click → `subscribed:false` DynamoDB flip was NOT exercised in this
+    round — worth doing once with a real click before going live.
+  - Compose-UI path (Access login → page → POST /campaigns with x-admin-key)
+    not yet tested; this test used direct Lambda invoke.
 
 ## After setup
 
