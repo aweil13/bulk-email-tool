@@ -11,7 +11,7 @@
  * import script warns about any list name in your CSV/Excel file that
  * isn't listed here.
  */
-export const AVAILABLE_LISTS = ["TEST", "general", "juniors", "adults"] as const;
+export const AVAILABLE_LISTS = ["TEST", "League", "general", "juniors", "adults"] as const;
 export type ListName = (typeof AVAILABLE_LISTS)[number];
 
 export interface Subscriber {
